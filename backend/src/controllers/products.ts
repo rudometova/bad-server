@@ -15,7 +15,7 @@ const UPLOAD_DIR = join(__dirname, '../public/uploads')
 // GET /product
 const getProducts = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        let { page = 1, limit = 5 } = req.query
+        const { page = 1, limit = 5 } = req.query
 
         // Валидация page и limit (защита от DoS)
         const pageNum = Math.max(1, Number(page) || 1)

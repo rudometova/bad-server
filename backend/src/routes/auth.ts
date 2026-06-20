@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import csrf from 'csurf'
 import {
     getCurrentUser,
     getCurrentUserRoles,
@@ -14,17 +15,14 @@ import {
     validateRegister,
     validateUpdateUser,
 } from '../utils/validate'
-import csrf from 'csurf'
 
 const authRouter = Router()
 const csrfProtection = csrf({ cookie: true })
 
 // Эндпоинт для получения CSRF-токена
-authRouter.get('/csrf-token', csrfProtection, (req, res) => {
-    return res.json({
+authRouter.get('/csrf-token', csrfProtection, (req, res) => res.json({
         csrfToken: req.csrfToken(),
-    })
-})
+    }))
 
 // Маршруты аутентификации
 authRouter.get('/user', auth, getCurrentUser)

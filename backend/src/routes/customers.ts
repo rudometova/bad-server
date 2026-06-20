@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { celebrate, Joi } from 'celebrate'
 import {
     deleteCustomer,
     getCustomerById,
@@ -6,7 +7,6 @@ import {
     updateCustomer,
 } from '../controllers/customers'
 import auth, { roleGuardMiddleware } from '../middlewares/auth'
-import { celebrate, Joi } from 'celebrate'
 import { Role } from '../models/user'
 
 const customerRouter = Router()

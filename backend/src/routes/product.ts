@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { celebrate, Joi } from 'celebrate'
 import {
     createProduct,
     deleteProduct,
@@ -12,7 +13,6 @@ import {
     validateProductUpdateBody,
 } from '../middlewares/validations'
 import { Role } from '../models/user'
-import { celebrate, Joi } from 'celebrate'
 
 const productRouter = Router()
 
