@@ -1,10 +1,14 @@
 import { Request, Express } from 'express'
 import multer, { FileFilterCallback } from 'multer'
 import { mkdirSync } from 'fs'
-import { join } from 'path'
+import path, { join } from 'path'
+import { v4 as uuidv4 } from 'uuid'
 
 type DestinationCallback = (error: Error | null, destination: string) => void
 type FileNameCallback = (error: Error | null, filename: string) => void
+
+// Безопасная директория для загрузки (без пользовательского ввода)
+const UPLOAD_DIR = join(__dirname, '../public/uploads')
 
 const storage = multer.diskStorage({
     destination: (
@@ -12,16 +16,8 @@ const storage = multer.diskStorage({
         _file: Express.Multer.File,
         cb: DestinationCallback
     ) => {
-        const destinationPath = join(
-            __dirname,
-            process.env.UPLOAD_PATH_TEMP
-                ? `../public/${process.env.UPLOAD_PATH_TEMP}`
-                : '../public'
-        )
-
-        mkdirSync(destinationPath, { recursive: true })
-
-        cb(null, destinationPath)
+        mkdirSync(UPLOAD_DIR, { recursive: true })
+        cb(null, UPLOAD_DIR)
     },
 
     filename: (
@@ -29,16 +25,19 @@ const storage = multer.diskStorage({
         file: Express.Multer.File,
         cb: FileNameCallback
     ) => {
-        cb(null, file.originalname)
+        // Генерируем уникальное имя файла (защита от Path Traversal)
+        const ext = path.extname(file.originalname)
+        const safeName = `${uuidv4()}${ext}`
+        cb(null, safeName)
     },
 })
 
-const types = [
+// Разрешённые типы файлов (без SVG из-за XSS-рисков)
+const allowedTypes = [
     'image/png',
     'image/jpg',
     'image/jpeg',
     'image/gif',
-    'image/svg+xml',
 ]
 
 const fileFilter = (
@@ -46,11 +45,16 @@ const fileFilter = (
     file: Express.Multer.File,
     cb: FileFilterCallback
 ) => {
-    if (!types.includes(file.mimetype)) {
+    if (!allowedTypes.includes(file.mimetype)) {
         return cb(null, false)
     }
-
     return cb(null, true)
 }
 
-export default multer({ storage, fileFilter })
+export default multer({
+    storage,
+    fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5 МБ
+    },
+})
