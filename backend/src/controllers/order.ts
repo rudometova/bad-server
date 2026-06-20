@@ -5,10 +5,10 @@ import NotFoundError from '../errors/not-found-error'
 import Order, { IOrder } from '../models/order'
 import Product, { IProduct } from '../models/product'
 import User from '../models/user'
+import sanitizeHtml from 'sanitize-html'
 
 // eslint-disable-next-line max-len
 // GET /orders?page=2&limit=5&sort=totalAmount&order=desc&orderDateFrom=2024-07-01&orderDateTo=2024-08-01&status=delivering&totalAmountFrom=100&totalAmountTo=1000&search=%2B1
-
 export const getOrders = async (
     req: Request,
     res: Response,
@@ -30,13 +30,12 @@ export const getOrders = async (
 
         const filters: FilterQuery<Partial<IOrder>> = {}
 
+        // Защита от NoSQL-инъекций
         if (status) {
-            if (typeof status === 'object') {
-                Object.assign(filters, status)
+            if (typeof status !== 'string') {
+                throw new BadRequestError('Некорректный status')
             }
-            if (typeof status === 'string') {
-                filters.status = status
-            }
+            filters.status = status
         }
 
         if (totalAmountFrom) {
@@ -108,16 +107,24 @@ export const getOrders = async (
             filters.$or = searchConditions
         }
 
+        // Проверка типов сортировки
+        if (typeof sortField !== 'string' || typeof sortOrder !== 'string') {
+            throw new BadRequestError('Некорректные параметры')
+        }
+
         const sort: { [key: string]: any } = {}
 
         if (sortField && sortOrder) {
             sort[sortField as string] = sortOrder === 'desc' ? -1 : 1
         }
 
+        // Ограничение limit для защиты от DoS
+        const normalLimit = Math.min(Number(limit) || 10, 10)
+
         aggregatePipeline.push(
             { $sort: sort },
-            { $skip: (Number(page) - 1) * Number(limit) },
-            { $limit: Number(limit) },
+            { $skip: (Number(page) - 1) * normalLimit },
+            { $limit: normalLimit },
             {
                 $group: {
                     _id: '$_id',
@@ -133,7 +140,7 @@ export const getOrders = async (
 
         const orders = await Order.aggregate(aggregatePipeline)
         const totalOrders = await Order.countDocuments(filters)
-        const totalPages = Math.ceil(totalOrders / Number(limit))
+        const totalPages = Math.ceil(totalOrders / normalLimit)
 
         res.status(200).json({
             orders,
@@ -141,7 +148,7 @@ export const getOrders = async (
                 totalOrders,
                 totalPages,
                 currentPage: Number(page),
-                pageSize: Number(limit),
+                pageSize: normalLimit,
             },
         })
     } catch (error) {
@@ -281,7 +288,7 @@ export const getOrderCurrentUserByNumber = async (
     }
 }
 
-// POST /product
+// POST /order
 export const createOrder = async (
     req: Request,
     res: Response,
@@ -293,6 +300,16 @@ export const createOrder = async (
         const userId = res.locals.user._id
         const { address, payment, phone, total, email, items, comment } =
             req.body
+
+        // Валидация total
+        if (typeof total !== 'number' || total <= 0) {
+            return next(new BadRequestError('Неверная сумма заказа'))
+        }
+
+        // Валидация items
+        if (!Array.isArray(items) || items.length === 0) {
+            return next(new BadRequestError('Корзина не может быть пустой'))
+        }
 
         items.forEach((id: Types.ObjectId) => {
             const product = products.find((p) => p._id.equals(id))
@@ -309,13 +326,19 @@ export const createOrder = async (
             return next(new BadRequestError('Неверная сумма заказа'))
         }
 
+        // Санитизация комментария (защита от XSS)
+        const sanitizedComment = sanitizeHtml(comment || '', {
+            allowedTags: [],
+            allowedAttributes: {},
+        })
+
         const newOrder = new Order({
             totalAmount: total,
             products: items,
             payment,
             phone,
             email,
-            comment,
+            comment: sanitizedComment,
             customer: userId,
             deliveryAddress: address,
         })
@@ -339,6 +362,13 @@ export const updateOrder = async (
 ) => {
     try {
         const { status } = req.body
+
+        // Валидация статуса
+        const allowedStatuses = ['pending', 'delivering', 'completed', 'cancelled']
+        if (!status || typeof status !== 'string' || !allowedStatuses.includes(status)) {
+            return next(new BadRequestError('Неверный статус заказа'))
+        }
+
         const updatedOrder = await Order.findOneAndUpdate(
             { orderNumber: req.params.orderNumber },
             { status },
