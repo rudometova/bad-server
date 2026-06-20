@@ -16,6 +16,7 @@ import { celebrate, Joi } from 'celebrate'
 
 const productRouter = Router()
 
+// GET /product — публичный доступ
 productRouter.get(
     '/',
     celebrate({
@@ -27,6 +28,7 @@ productRouter.get(
     getProducts
 )
 
+// POST /product — только администраторы
 productRouter.post(
     '/',
     auth,
@@ -49,6 +51,7 @@ productRouter.post(
     createProduct
 )
 
+// DELETE /product — только администраторы
 productRouter.delete(
     '/:productId',
     auth,
@@ -57,6 +60,7 @@ productRouter.delete(
     deleteProduct
 )
 
+// PATCH /product — только администраторы
 productRouter.patch(
     '/:productId',
     auth,

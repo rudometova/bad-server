@@ -5,12 +5,15 @@ import {
     getCustomers,
     updateCustomer,
 } from '../controllers/customers'
-import auth from '../middlewares/auth'
+import auth, { roleGuardMiddleware } from '../middlewares/auth'
 import { celebrate, Joi } from 'celebrate'
+import { Role } from '../models/user'
 
 const customerRouter = Router()
 
-customerRouter.get('/', auth, getCustomers)
+// Только администраторы могут получать список всех пользователей
+customerRouter.get('/', auth, roleGuardMiddleware(Role.Admin), getCustomers)
+
 customerRouter.get(
     '/:id',
     celebrate({
@@ -19,9 +22,14 @@ customerRouter.get(
         }),
     }),
     auth,
+    roleGuardMiddleware(Role.Admin),
     getCustomerById
 )
-customerRouter.patch('/:id', auth, updateCustomer)
-customerRouter.delete('/:id', auth, deleteCustomer)
+
+// Только администраторы могут обновлять пользователей
+customerRouter.patch('/:id', auth, roleGuardMiddleware(Role.Admin), updateCustomer)
+
+// Только администраторы могут удалять пользователей
+customerRouter.delete('/:id', auth, roleGuardMiddleware(Role.Admin), deleteCustomer)
 
 export default customerRouter
