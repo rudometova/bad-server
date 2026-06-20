@@ -10,9 +10,22 @@ import { DB_ADDRESS } from './config'
 import errorHandler from './middlewares/error-handler'
 import serveStatic from './middlewares/serverStatic'
 import routes from './routes'
+import rateLimit from 'express-rate-limit'
+
+// Настройка Rate Limiting (защита от DDoS)
+const limiter = rateLimit({
+    windowMs: 60 * 1000, // 1 минута
+    max: 50, // максимум 50 запросов с одного IP
+    message: 'Слишком много запросов, попробуйте позже',
+    standardHeaders: true,
+    legacyHeaders: false,
+})
 
 const { PORT = 3000 } = process.env
 const app = express()
+
+// Rate Limiting подключаем самым первым
+app.use(limiter)
 
 app.use(cookieParser())
 
