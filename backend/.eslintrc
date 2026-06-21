@@ -13,8 +13,7 @@
   "settings": {
     "import/resolver": {
       "node": {
-        "extensions": [".ts", ".js", ".json"],
-         "moduleDirectory": ["node_modules", "src/"]
+        "extensions": [".ts", ".js", ".json"]
       }
     },
     "import/extensions": [".js", ".ts"]

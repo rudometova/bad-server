@@ -106,7 +106,13 @@ const userSchema = new mongoose.Schema<IUser, IUserModel, IUserMethods>(
         toJSON: {
             virtuals: true,
             transform: (_doc, ret) => {
-                const { tokens: _tokens, password: _password, _id, roles: _roles, ...rest } = ret
+                const {
+                    tokens: _tokens,
+                    password: _password,
+                    _id,
+                    roles: _roles,
+                    ...rest
+                } = ret
                 return rest
             },
         },
@@ -175,7 +181,7 @@ userSchema.statics.findUserByCredentials = async function findByCredentials(
     email: string,
     password: string
 ) {
-    const user = await this.findOne({ email })
+    const user = await this.findOne({ email: String(email) })
         .select('+password')
         .orFail(() => new UnauthorizedError('Неправильные почта или пароль'))
     const passwdMatch = md5(password) === user.password

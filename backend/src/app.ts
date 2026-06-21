@@ -9,6 +9,7 @@ import { DB_ADDRESS } from './config'
 import errorHandler from './middlewares/error-handler'
 import serveStatic from './middlewares/serverStatic'
 import routes from './routes'
+
 import rateLimit from 'express-rate-limit'
 
 const { PORT = 3000 } = process.env
@@ -23,9 +24,9 @@ const limiter = rateLimit({
 app.use(limiter)
 app.use(cookieParser())
 
+// app.use(cors())
 app.use(cors({ origin: process.env.ORIGIN_ALLOW, credentials: true }))
 
-// ✅ ДОБАВЬ ЭТУ СТРОКУ
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.use(serveStatic(path.join(__dirname, 'public')))
@@ -38,6 +39,8 @@ app.options('*', cors())
 app.use(routes)
 app.use(errors())
 app.use(errorHandler)
+
+// eslint-disable-next-line no-console
 
 const bootstrap = async () => {
     try {

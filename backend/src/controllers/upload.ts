@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from 'express'
 import { constants } from 'http2'
-import sharp from 'sharp'
 import BadRequestError from '../errors/bad-request-error'
+import sharp from 'sharp'
+import { v4 as uuidv4 } from 'uuid'
 
 export const uploadFile = async (
     req: Request,
@@ -11,10 +12,10 @@ export const uploadFile = async (
     if (!req.file) {
         return next(new BadRequestError('Файл не загружен'))
     }
-    try {
-        const {file} = req
 
-        // Минимальный размер файла (2 KB)
+    try {
+        const file = req.file
+
         const MIN_SIZE = 2 * 1024
         if (file.size < MIN_SIZE) {
             return next(
@@ -22,7 +23,6 @@ export const uploadFile = async (
             )
         }
 
-        // Максимальный размер файла (10 MB)
         const MAX_SIZE = 10 * 1024 * 1024
         if (file.size > MAX_SIZE) {
             return next(
@@ -30,12 +30,10 @@ export const uploadFile = async (
             )
         }
 
-        // Проверка MIME-типа
         if (!file.mimetype.startsWith('image/')) {
             return next(new BadRequestError('Файл должен быть изображением'))
         }
 
-        // Проверка через sharp (реальное содержимое)
         let metadata
         try {
             metadata = await sharp(file.path).metadata()
@@ -51,14 +49,12 @@ export const uploadFile = async (
             return next(new BadRequestError('Некорректное изображение'))
         }
 
-        // Безопасное имя файла уже сгенерировано в file.ts
         const fileName = process.env.UPLOAD_PATH
             ? `/${process.env.UPLOAD_PATH}/${file.filename}`
-            : `/${file.filename}`
+            : file.filename
 
         return res.status(constants.HTTP_STATUS_CREATED).send({
             fileName,
-            originalName: file.originalname,
         })
     } catch (error) {
         return next(error)

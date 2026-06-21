@@ -3,9 +3,11 @@ import { FilterQuery } from 'mongoose'
 import NotFoundError from '../errors/not-found-error'
 import Order from '../models/order'
 import User, { IUser } from '../models/user'
-import { escapeRegex } from '../utils/sanitizeQuery'
+import { escapeRegex } from '../utils/escapeRegex'
 
-// GET /customers?page=2&limit=5&sort=totalAmount&order=desc&registrationDateFrom=2023-01-01&registrationDateTo=2023-12-31&lastOrderDateFrom=2023-01-01&lastOrderDateTo=2023-12-31&totalAmountFrom=100&totalAmountTo=1000&orderCountFrom=1&orderCountTo=10
+// TODO: Добавить guard admin
+// eslint-disable-next-line max-len
+// Get GET /customers?page=2&limit=5&sort=totalAmount&order=desc&registrationDateFrom=2023-01-01&registrationDateTo=2023-12-31&lastOrderDateFrom=2023-01-01&lastOrderDateTo=2023-12-31&totalAmountFrom=100&totalAmountTo=1000&orderCountFrom=1&orderCountTo=10
 export const getCustomers = async (
     req: Request,
     res: Response,
@@ -114,10 +116,11 @@ export const getCustomers = async (
         }
 
         const normalLimit = Math.min(Number(limit) || 10, 10)
+
         const options = {
             sort,
-            skip: (Number(page) - 1) * normalLimit,
-            limit: normalLimit,
+            skip: (Number(page) - 1) * Number(normalLimit),
+            limit: Number(normalLimit),
         }
 
         const users = await User.find(filters, null, options).populate([
@@ -137,7 +140,7 @@ export const getCustomers = async (
         ])
 
         const totalUsers = await User.countDocuments(filters)
-        const totalPages = Math.ceil(totalUsers / normalLimit)
+        const totalPages = Math.ceil(totalUsers / Number(normalLimit))
 
         res.status(200).json({
             customers: users,
@@ -145,7 +148,7 @@ export const getCustomers = async (
                 totalUsers,
                 totalPages,
                 currentPage: Number(page),
-                pageSize: normalLimit,
+                pageSize: Number(normalLimit),
             },
         })
     } catch (error) {
@@ -153,7 +156,8 @@ export const getCustomers = async (
     }
 }
 
-// GET /customers/:id
+// TODO: Добавить guard admin
+// Get /customers/:id
 export const getCustomerById = async (
     req: Request,
     res: Response,
@@ -170,40 +174,19 @@ export const getCustomerById = async (
     }
 }
 
-// PATCH /customers/:id
+// TODO: Добавить guard admin
+// Patch /customers/:id
 export const updateCustomer = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
     try {
-        // Разрешаем только определённые поля для обновления
-        const allowedUpdates = ['name', 'phone', 'address']
-        const updateData: any = {}
-
-        allowedUpdates.forEach((field) => {
-            if (req.body[field] !== undefined) {
-                updateData[field] = req.body[field]
-            }
-        })
-
-        // Валидация типов
-        if (updateData.name && typeof updateData.name !== 'string') {
-            return res.status(400).json({ error: 'Invalid name format' })
-        }
-        if (updateData.phone && typeof updateData.phone !== 'string') {
-            return res.status(400).json({ error: 'Invalid phone format' })
-        }
-        if (updateData.address && typeof updateData.address !== 'string') {
-            return res.status(400).json({ error: 'Invalid address format' })
-        }
-
         const updatedUser = await User.findByIdAndUpdate(
             req.params.id,
-            updateData,
+            req.body,
             {
                 new: true,
-                runValidators: true,
             }
         )
             .orFail(
@@ -213,14 +196,14 @@ export const updateCustomer = async (
                     )
             )
             .populate(['orders', 'lastOrder'])
-
         res.status(200).json(updatedUser)
     } catch (error) {
         next(error)
     }
 }
 
-// DELETE /customers/:id
+// TODO: Добавить guard admin
+// Delete /customers/:id
 export const deleteCustomer = async (
     req: Request,
     res: Response,
