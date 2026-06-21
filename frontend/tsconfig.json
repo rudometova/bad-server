@@ -5,6 +5,7 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "allowJs": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -28,7 +29,7 @@
       "@components/*": ["./src/components/*"],
       "@slices/*": ["./src/services/slice/*"],
       "@store/*": ["./src/services/*"],
-      "@assets/*": ["./src/assets/*"]
+      "@assets/*": ["./src/assets/*"],
     }
   },
   "include": ["src"],
