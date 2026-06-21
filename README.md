@@ -1,6 +1,8 @@
 # Проектная работа "WebLarek. Плохой сервер.", спринт 17
 
-https://github.com/rudometova/bad-server
+https://github.com/rudometova/bad-server  
+Валентина Рудометова
+45 когорта, курс "Фуллстек-разработчик"
 
 ## Подготовка к работе
 1. Склонировать репозиторий
